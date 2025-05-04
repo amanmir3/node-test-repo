@@ -14,7 +14,7 @@ variables:
 
 build:
   stage: build
-  image: node:20 # Use Node.js 18 Docker image
+  image: node:23 # Use Node.js 23 Docker image
   script:
     - npm install # Install npm dependencies
     - zip -r $ZIP_FILE . # Package the Lambda function into a ZIP file
