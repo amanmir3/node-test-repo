@@ -16,11 +16,11 @@ pipeline {
         stage('Build') {
             steps {
                 script {
-                    // Install Node.js 18 using nvm
-                    sh 'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash'
+                    // Install Node.js 23 using nvm
+                    sh 'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash'
                     sh 'export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"'
-                    sh 'nvm install 18'
-                    sh 'nvm use 18'
+                    sh 'nvm install 23'
+                    sh 'nvm use 23'
 
                     // Install npm dependencies
                     sh 'npm install'
