@@ -1,0 +1,44 @@
+stages:
+  - build
+  - deploy
+
+variables:
+  AWS_REGION: "us-east-1" # Change to your desired AWS region
+  AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID # Set in GitLab CI/CD variables
+  AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY # Set in GitLab CI/CD variables
+  LAMBDA_FUNCTION_NAME: "your-lambda-function-name" # Change to your Lambda function name
+  S3_BUCKET: "your-s3-bucket-name" # Change to your S3 bucket name
+  JAR_FILE: "target/your-lambda-function.jar" # Change to your JAR file path
+  LOG_GROUP_NAME: "/aws/lambda/$LAMBDA_FUNCTION_NAME" # CloudWatch log group
+  X_RAY_TRACING: "Active" # Enable X-Ray tracing
+
+build:
+  stage: build
+  image: maven:3.8.6-openjdk-18
+  script:
+    - mvn clean package
+  artifacts:
+    paths:
+      - $JAR_FILE
+
+deploy:
+  stage: deploy
+  image: amazon/aws-cli
+  script:
+    - aws s3 cp $JAR_FILE s3://$S3_BUCKET/
+    - aws lambda update-function-code --function-name $LAMBDA_FUNCTION_NAME --s3-bucket $S3_BUCKET --s3-key $(basename $JAR_FILE)
+    - aws lambda update-function-configuration --function-name $LAMBDA_FUNCTION_NAME --environment "LOG_GROUP_NAME=$LOG_GROUP_NAME" --tracing-config "Mode=$X_RAY_TRACING"
+    - aws logs create-log-group --log-group-name $LOG_GROUP_NAME || echo "Log group already exists"
+    - aws logs put-retention-policy --log-group-name $LOG_GROUP_NAME --retention-in-days 14 # Set retention policy to 14 days
+  only:
+    - main # Change to your default branch
+
+monitoring:
+  stage: monitoring
+  image: amazon/aws-cli
+  script:
+    - echo "Setting up CloudWatch Alarms for Lambda Function"
+    - aws cloudwatch put-metric-alarm --alarm-name "HighErrorRate" --metric-name "Errors" --namespace "AWS/Lambda" --statistic "Sum" --period 300 --threshold 1 --comparison-operator "GreaterThanThreshold" --dimensions "Name=FunctionName,Value=$LAMBDA_FUNCTION_NAME" --evaluation-periods 1 --alarm-actions "arn:aws:sns:us-east-1:123456789012:your-sns-topic" # Change SNS topic ARN
+    - aws cloudwatch put-metric-alarm --alarm-name "HighDuration" --metric-name "Duration" --namespace "AWS/Lambda" --statistic "Average" --period 300 --threshold 1000 --comparison-operator "GreaterThanThreshold" --dimensions "Name=FunctionName,Value=$LAMBDA_FUNCTION_NAME" --evaluation-periods 1 --alarm-actions "arn:aws:sns:us-east-1:123456789012:your-sns-topic" # Change SNS topic ARN
+  only:
+    - main # Change to your default branch
