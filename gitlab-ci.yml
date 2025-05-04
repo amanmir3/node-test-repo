@@ -14,7 +14,7 @@ variables:
 
 build:
   stage: build
-  image: node:14 # Use Node.js 18 Docker image
+  image: node:18 # Use Node.js 18 Docker image
   script:
     - npm install # Install npm dependencies
     - zip -r $ZIP_FILE . # Package the Lambda function into a ZIP file
@@ -24,7 +24,7 @@ build:
 
 deploy:
   stage: deploy
-  image: amazon/aws-cli # Use AWS CLI Docker image
+  image: amazon/aws-cli:latest # Use AWS CLI Docker image
   script:
     - aws s3 cp $ZIP_FILE s3://$S3_BUCKET/ # Upload the ZIP file to S3
     - aws lambda update-function-code --function-name $LAMBDA_FUNCTION_NAME --s3-bucket $S3_BUCKET --s3-key $ZIP_FILE # Update the Lambda function code
